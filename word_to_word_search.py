@@ -162,25 +162,43 @@ def wrongLocationsHeuristic(fromWord, goalWord):
 
 
 def betterHeuristic(fromWord, goalWord):
-    """ TODO: add clear docstring comment here
-         explaining your heuristic!"""
-    # TODO: Implement your heuristic function here
-    # (Note -- you can complete this task later, after everything else is done!)
-    # The ideal heuristic functions would be highly "informed"
-    # (provide as close an estimate of the real cost to the goal as possible),
-    #  admissible and consistent (to guarantee A* graph search will be optimal)
-    #  and quick/efficient to compute.
-    # You are welcome to try tweaking wrongLocations, or try something totally different!
-    # returns the number of letters 
-    wrongCount = 0
-    wrongCount = 0
+    #The goal of our invented betterHeuristic method is to return an
+    #estimated cost to reach the goalWord from the current state of the word if we use DELETE, SWAP, INSERT OR REPLACE actions.
+    tempWord = fromWord
+    totalCost = 0
+    # uncoment for debug
+    # print("initial state: ", tempWord)
+    swapCount = 0
+    # adds up cost for swaping 
     for i in range(max(len(fromWord), len(goalWord))):
-        try:
-            if fromWord[i] != goalWord[i]:
-                wrongCount += 1
+        try: 
+            if tempWord[i] != goalWord[i] and (tempWord[i] in goalWord[i:]):
+                tempWord = swap(tempWord, i, goalWord.index(fromWord[i]))
+                swapCount += 1
         except IndexError as ex:
-            wrongCount += 1
-    return wrongCount
+            swapCount += 1
+    # uncoment for debug
+    # if swapCount > 0:
+    #     print("after swapping: ", tempWord)
+    # adds up cost for replacing letter
+    replaceCount = 0
+    for i in range(max(len(fromWord), len(goalWord))):
+        try: 
+            if tempWord[i] != goalWord[i]:
+                tempWord = changeLetter(tempWord, i, goalWord[i])
+                replaceCount += 1
+        except IndexError as ex:
+            replaceCount += 1
+    # uncoment for debug
+    # if replaceCount > 0:
+    #     print("after replacing: ", tempWord)
+    # adds up cost for adding
+    if(len(tempWord) < len(goalWord)):
+        totalCost = abs(len(tempWord)-len(goalWord)) * 100
+    # adds up cost for deleting 
+    if(len(tempWord) > len(goalWord)):
+        totalCost += abs(len(tempWord)-len(goalWord)) * 100
+    return swapCount + totalCost + (replaceCount * 10)
 
 
 ########### End heuristic functions #############
@@ -329,7 +347,7 @@ def greedy(startWord, goalWord, ):
 
 def aStar(startWord, goalWord):
     return genericGraphSearch(startWord, goalWord, PriorityQueue(), aStarPriority,
-                              heuristicFunction=wrongLocationsHeuristic)
+                              heuristicFunction=betterHeuristic)
 
 def iterativeDeepening(startWord, goalWord, maxDepthLimit=100):
     totalSteps = 0
@@ -339,11 +357,10 @@ def iterativeDeepening(startWord, goalWord, maxDepthLimit=100):
     ##   overallMaxMemory should end up as the MAX of all the memory that each DFS search took
     ##   as soon as a solution is found, return it (along with the steps & memory efficiency data).
     for i in range(maxDepthLimit):
-        node, numNodesCreated, maxMemory  = dfs(startWord, goalWord, i)
+        node, numNodesCreated, maxMemory  = dfs(startWord, goalWord, maxDepthLimit)
         totalSteps += numNodesCreated
         overallMaxMemory += maxMemory
         if (node != None):
-            overallMaxMemory = maxMemory
             return node, totalSteps, overallMaxMemory
     # if the iteration down to maxDepthLimit failed, we return None (along with the efficiency info).
     return (None, totalSteps, overallMaxMemory)
@@ -389,14 +406,14 @@ def main():
     # print ('MAXMEMORY' ,  maxMemory)
 
     # We can also loop through a LIST of FUNCTION objects --
-    # which is a convenient way to test them all!
+    # which is a convenient way to test them all![dfs, bfs, ucs, greedy, aStar, iterativeDeepening]:
+    # betterHeuristic("s", "sami")
     for searchAlg in [dfs, bfs, ucs, greedy, aStar, iterativeDeepening]:
-        runSearch("TAB", "CART", searchAlg)
-        runSearch("HUMAN", "ROBOT", searchAlg)
-        runSearch("STONEDAHL", "ROBOT", searchAlg)
-        runSearch("ROBOT", "STONEDAHL", searchAlg)
-        print('--------------------------------------------------------------------------------------------')
-    prin('done. ')
+        runSearch("SNAKE", "BIRDS", searchAlg)
+    #     # runSearch("HUMAN", "ROBOT", searchAlg)
+    #     # runSearch("STONEDAHL", "ROBOT", searchAlg)
+    #     # runSearch("ROBOT", "STONEDAHL", searchAlg)
+    #     print('--------------------------------------------------------------------------------------------')
 
 
 if __name__ == '__main__':
