@@ -21,7 +21,7 @@ warnings.filterwarnings("ignore")
 # TODO: For quicker debugging, you may first try using the smaller dictionaries 
 #        ("super_small_dict.txt", "TWL98_atmost4.txt", etc)
 # TODO: But for timing measurements & analysis, go back to using the full "TWL98.TXT" later
-LEGAL_WORD_SET = frozenset(open("super_small_dict.txt", "r").read().split())
+LEGAL_WORD_SET = frozenset(open("TWL98.txt", "r").read().split())
 ALPHABET = [chr(i) for i in range(ord('A'), ord('Z') + 1)]  # just the letters A-Z (no punctuation, etc)
 
 
@@ -171,6 +171,16 @@ def betterHeuristic(fromWord, goalWord):
     #  admissible and consistent (to guarantee A* graph search will be optimal)
     #  and quick/efficient to compute.
     # You are welcome to try tweaking wrongLocations, or try something totally different!
+    # returns the number of letters 
+    wrongCount = 0
+    wrongCount = 0
+    for i in range(max(len(fromWord), len(goalWord))):
+        try:
+            if fromWord[i] != goalWord[i]:
+                wrongCount += 1
+        except IndexError as ex:
+            wrongCount += 1
+    return wrongCount
 
 
 ########### End heuristic functions #############
@@ -210,7 +220,8 @@ def deleteLetter(word, index):
     
     e.g. deleteLetter("ABC", 1)  will return "AC"  """
     word = word[0:index] + "" + word[index + 1:len(word)]
-    return word # TODO: FIX THIS FUNCTION
+    return word
+
 
 def successorActions(word):
     """ returns a list of legal actions that can be taken from this word """
@@ -237,7 +248,6 @@ def successorActions(word):
                 sucList.append(Action('INS %d %s' % (i, newLetter), 100, word, resultWord))
     # consider removing each letter in the word (action cost 100)
     for i in range(len(word)):
-        print(' word ' + word)
         resultWord = deleteLetter(word, i)
         if resultWord in LEGAL_WORD_SET:
             sucList.append(Action('DEL %d' % (i), 100, word, resultWord))
@@ -248,8 +258,7 @@ def successorActions(word):
 
 # NOTE: You should not need to change this function at all, but it is the HEART
 #        of all the search algorithms, so you SHOULD understand it.
-def genericGraphSearch(startWord, goalWord, fringe, priorityFunction, heuristicFunction=zeroHeuristic,
-                       searchDepthLimit=100):
+def genericGraphSearch(startWord, goalWord, fringe, priorityFunction, heuristicFunction=zeroHeuristic, searchDepthLimit=100):
     """ Runs a general state-space GRAPH search algorithm. 
         Returns a tuple (solution, numNodesCreated, maxMemoryUsedEstimate)
            If no solution was found,  the returned solution will be None
@@ -265,43 +274,38 @@ def genericGraphSearch(startWord, goalWord, fringe, priorityFunction, heuristicF
         heuristicFunction - a function that takes in a currentState and a goalState and estimates the cost to reach the goal.
         searchDepthLimit - give up on plans that require more than this number of actions
        """
-    closedSet = set([])  # keep track of all previously expanded states, so we don't try them again.
+    closedSet = set([]) # keep track of all previously expanded states, so we don't try them again.
     heuristicCostStart = heuristicFunction(startWord, goalWord)
-    searchRoot = SearchNode(startWord, [], 0, heuristicCostStart,
-                            priorityFunction)  # create the first node in the search tree
+    searchRoot = SearchNode(startWord,[],0, heuristicCostStart, priorityFunction) #create the first node in the search tree
     fringe.put(searchRoot)
-
+    
     # the next 3 lines are not part of the search process, just used to help measure algorithm efficiency.
-    numNodesCreated = 1  # as a way to estimate for computational effort / time-efficiency
-    roughMemoryCounter = 1  # as a way to (roughly!) estimate the current amount of memory used
-    maxRoughMemoryCounter = 0  # tracks the max amount of (roughly estimated) memory used at one time
-
+    numNodesCreated = 1 # as a way to estimate for computational effort / time-efficiency
+    roughMemoryCounter = 1 # as a way to (roughly!) estimate the current amount of memory used
+    maxRoughMemoryCounter = 0 # tracks the max amount of (roughly estimated) memory used at one time
+    
     while (not fringe.empty()):
         curNode = fringe.get()
         roughMemoryCounter -= len(curNode.getActionHistory())
         curWord = curNode.getCurrentState()
         if (curWord == goalWord):
             return curNode, numNodesCreated, maxRoughMemoryCounter
-        elif (curWord not in closedSet) and (searchDepthLimit == 0 or len(curNode.getActionHistory()) < searchDepthLimit):
-
+        elif (curWord not in closedSet) and (searchDepthLimit == 0 or len(curNode.getActionHistory()) < searchDepthLimit):        
             closedSet.add(curWord)
             actionList = successorActions(curWord)
             for action in actionList:
                 newWord = action.getResultingState()
-
                 if (newWord not in closedSet):  # we can save some memory by not adding things to the fringe if they're already in the closed set
-
-                    newActionHistory = curNode.getActionHistory() + [action]  # create new list with action added on the end
+                    newActionHistory = curNode.getActionHistory() + [action] #create new list with action added on the end
                     newGoneCost = curNode.getGoneCost() + action.getActionCost()
-                    newHeuristicCost = heuristicFunction(newWord, goalWord)
+                    newHeuristicCost = heuristicFunction(newWord,goalWord)
                     childNode = SearchNode(newWord, newActionHistory, newGoneCost, newHeuristicCost, priorityFunction)
                     roughMemoryCounter += len(newActionHistory)
                     numNodesCreated += 1
                     fringe.put(childNode)
-
-            maxRoughMemoryCounter = max(roughMemoryCounter,maxRoughMemoryCounter)  # update max memory statistic if needed
-
+            maxRoughMemoryCounter = max(roughMemoryCounter,maxRoughMemoryCounter) #update max memory statistic if needed
     return (None, numNodesCreated, maxRoughMemoryCounter)
+
 
 
 def dfs(startWord, goalWord, searchDepthLimit=100):
@@ -309,11 +313,11 @@ def dfs(startWord, goalWord, searchDepthLimit=100):
 
 
 def bfs(startWord, goalWord):
-    return  genericGraphSearch(startWord, goalWord, Queue(), zeroPriority)# TODO: Fix this line to call genericGraphSearch with the right parameters (use a Queue object for the fringe!)
+    return genericGraphSearch(startWord, goalWord, Queue(), zeroPriority)# TODO: Fix this line to call genericGraphSearch with the right parameters (use a Queue object for the fringe!)
 
 
 def ucs(startWord, goalWord):
-    return None  # TODO: Fix this line to call genericGraphSearch with the right parameters
+    return genericGraphSearch(startWord, goalWord, Queue(), ucsPriority)  # TODO: Fix this line to call genericGraphSearch with the right parameters
 
 
 def greedy(startWord, goalWord, ):
@@ -324,8 +328,8 @@ def greedy(startWord, goalWord, ):
 
 
 def aStar(startWord, goalWord):
-    return None  # TODO: call genericGraphSearch with the right parameters (and whichever heuristicFunction you want to test!)
-
+    return genericGraphSearch(startWord, goalWord, PriorityQueue(), aStarPriority,
+                              heuristicFunction=wrongLocationsHeuristic)
 
 def iterativeDeepening(startWord, goalWord, maxDepthLimit=100):
     totalSteps = 0
@@ -334,7 +338,13 @@ def iterativeDeepening(startWord, goalWord, maxDepthLimit=100):
     ##   totalSteps calculate the SUM of all the steps each DFS search took in every round
     ##   overallMaxMemory should end up as the MAX of all the memory that each DFS search took
     ##   as soon as a solution is found, return it (along with the steps & memory efficiency data).
-
+    for i in range(maxDepthLimit):
+        node, numNodesCreated, maxMemory  = dfs(startWord, goalWord, i)
+        totalSteps += numNodesCreated
+        overallMaxMemory += maxMemory
+        if (node != None):
+            overallMaxMemory = maxMemory
+            return node, totalSteps, overallMaxMemory
     # if the iteration down to maxDepthLimit failed, we return None (along with the efficiency info).
     return (None, totalSteps, overallMaxMemory)
 
@@ -349,7 +359,7 @@ def runSearch(start, goal, searchAlgFunction):
     endTime = time.clock()
 
     print("\nSearch method " + searchAlgFunction.__name__)
-    print(solution)  # useful for debugging -- maybe too much information though?
+    # print(solution)  # useful for debugging -- maybe too much information though?
     if (solution != None):
         print(solution.getStatesAlongSearchPath())
         print("Total cost: ", solution.getGoneCost())
@@ -372,15 +382,21 @@ def main():
     # Note: since Python allows "functional programming", we can pass
     #       a function (like dfs) as a parameter to another function!
     #  (essentially, functions ARE just another type of object in Python!)
-    runSearch("CAT", "CART", bfs)
+    #runSearch("karim", "CART", dfs)
+    # node, overallSteps, maxMemory = iterativeDeepening("cat", "dog")
+    # print('NODE', node)
+    # print('OVERALLSTEPS', overallSteps)
+    # print ('MAXMEMORY' ,  maxMemory)
 
     # We can also loop through a LIST of FUNCTION objects --
     # which is a convenient way to test them all!
-    # for searchAlg in [dfs, bfs, ucs, greedy, aStar, iterativeDeepening]:
-    # runSearch("TAB", "CART", searchAlg)
-    # runSearch("HUMAN", "ROBOT", searchAlg)
-    # runSearch("STONEDAHL", "ROBOT", searchAlg)
-    # runSearch("ROBOT", "STONEDAHL", searchAlg)
+    for searchAlg in [dfs, bfs, ucs, greedy, aStar, iterativeDeepening]:
+        runSearch("TAB", "CART", searchAlg)
+        runSearch("HUMAN", "ROBOT", searchAlg)
+        runSearch("STONEDAHL", "ROBOT", searchAlg)
+        runSearch("ROBOT", "STONEDAHL", searchAlg)
+        print('--------------------------------------------------------------------------------------------')
+    prin('done. ')
 
 
 if __name__ == '__main__':
